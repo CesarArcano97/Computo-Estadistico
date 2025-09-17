@@ -1,0 +1,120 @@
+# LaTeX auxiliary files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.nav
+*.snm
+*.vrb
+*.idx
+*.ilg
+*.ind
+*.nlo
+*.nls
+*.glo
+*.gls
+*.glg
+*.acn
+*.acr
+*.alg
+*.dvi
+*.ps
+
+# LaTeX Beamer
+*.figlist
+*.makefile
+
+# LaTeX bibtex
+*.brf
+
+# LaTeX build directories
+**/output/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# R
+.Rhistory
+.Rapp.history
+.RData
+.Ruserdata
+*.Rproj
+.Rproj.user/
+
+# RStudio
+*.Rproj.user
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# Data files (uncomment if you don't want to track large datasets)
+# *.csv
+# *.xlsx
+# *.json
+# *.xml
+
+# Compiled output (keep PDFs but not intermediate files)
+# Uncomment the line below if you don't want to track PDF files
+# *.pdf
+
+# Personal notes (uncomment if you have private notes)
+# personal_notes/
+# private/
