@@ -8,8 +8,7 @@
 **Course:** Statistical Computing (Computo Estadístico)  
 **Program:** Master's Degree in Statistical Computing  
 **Institution:** CIMAT Monterrey  
-**Semester:** Third Semester  
-**Student:** César Arcano  
+**Semester:** Third Semester    
 
 ## Repository Structure
 
