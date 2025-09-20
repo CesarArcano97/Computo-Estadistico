@@ -97,5 +97,5 @@ This repository is for academic purposes. All work is original unless otherwise 
 ---
 
 **Last Updated:** September 2025  
-**Author:** César Arcano  
-**Contact:** [Your Email] (if you want to include it)
+**Author:** César Aguirre  
+**Contact:** cesar.aguirre@cimat.mx
