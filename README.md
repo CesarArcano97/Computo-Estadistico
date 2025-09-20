@@ -77,7 +77,11 @@ For assignments requiring LaTeX reports:
 
 - [x] Repository setup and structure
 - [x] Assignment 1 (if completed)
-- [ ] Assignment 2 - LaTeX Report (In Progress)
+- [x] **Assignment 2 - LaTeX Report (COMPLETED)** 📊
+  - 41-page comprehensive statistical computing report
+  - 10 problems covering GLM, ROC analysis, Poisson regression
+  - R/Python analysis with visualizations
+  - Professional LaTeX formatting
 - [ ] Assignment 3
 - [ ] Assignment 4
 - [ ] Midterm Exam
@@ -93,6 +97,6 @@ This repository is for academic purposes. All work is original unless otherwise 
 
 ---
 
-**Last Updated:** January 2025  
+**Last Updated:** September 2025  
 **Author:** César Arcano  
 **Contact:** [Your Email] (if you want to include it)
