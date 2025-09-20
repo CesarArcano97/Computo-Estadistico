@@ -1,0 +1,180 @@
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% Enunciado %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{myblock}
+\phantomsection\addcontentsline{toc}{section}{Ejercicio \#8 | Estimación por Mínima Ji-Cuadrada}
+\section*{Ejercicio \#8 | Estimación por Mínima Ji-Cuadrada}
+
+El objetivo de este problema es estimar las proporciones $\pi_1, \pi_2$ y $\pi_3$ correspondientes a tres categorías de objetos (A, B y C) en una población. En lugar de utilizar el método de máxima verosimilitude, se empleará el método de la \textbf{mínima ji-cuadrada}. Este consiste en encontrar los valores de los parámetros que minimizan el estadístico de Pearson ($\chi^2$).
+
+Los datos provienen de un diseño de muestreo particular en el que se tomaron tres muestras independientes para registrar la frecuencia de una sola categoría en cada una:
+\begin{itemize}
+    \item Número de objetos 'A' en una muestra de tamaño $n_1=100$: $y_1=22$.
+    \item Número de objetos 'B' en una muestra de tamaño $n_2=150$: $y_2=52$.
+    \item Número de objetos 'C' en una muestra de tamaño $n_3=200$: $y_3=77$.
+\end{itemize}
+
+El estadístico de Pearson a minimizar se construye sumando los componentes de cada muestra, donde cada una se considera un ensayo binomial (ej. 'A' vs 'no A'). La función objetivo a minimizar para encontrar $\pi_1, \pi_2$ y $\pi_3$ es:
+\[
+    \chi^2 = \sum_{i=1}^{3} \left[ \frac{(y_i - n_i\pi_i)^2}{n_i\pi_i} + \frac{((n_i-y_i) - n_i(1-\pi_i))^2}{n_i(1-\pi_i)} \right]
+\]
+La estimación está sujeta a la restricción $ \pi_1 + \pi_2 + \pi_3 = 1 $. Se sugiere resolver este problema de optimización numérica utilizando la función \texttt{nlminb} de R.
+
+\end{myblock}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Teoría}
+
+Queremos estimar las proporciones de una multinomial de tres categorías:
+
+\[
+    \pi = (\pi_1, \pi_2, \pi_3) \;\;\; \pi_j \leq 0 \;\;\; \pi_1 + \pi_2 + \pi_3 = 1
+\]
+
+Normlaemnte, usaríamos máxima verosimilitud (MLE). pero se nos propuso una técnica diferente: utilizar
+mínima ji-cuadráda. Esta idea se basa en ajustar las probabilidades de maenra que se minimice el estadístico
+de Pearson:
+
+\[
+    \chi^2(\pi) = \sum_{j=1}^{K} \frac{(y_j  n \pi_j (\theta))^2}{n \pi_j (\theta)}
+\]
+
+En este problema en particular, no tenemos una muestra única multinomial, sino tres estudios independientes
+con tamañoa $n_1, n_2, n_3$, y cada uno reporta únicamente la frecuencia de una categoría:
+
+\begin{itemize}
+    \item En el estudio número 1 se registró el número de A'S.
+    \item En el estudio número 2 el número de B's.
+    \item En el estudio número 3 el número de C's.
+\end{itemize}
+
+De ese modo, cada muestra aporta información parcial sobre las $\pi_1, \pi_2, \pi_3$. 
+
+Ahora bien, el criterio de mínima ji-cuadrada se construye sumando, para cada estudio, la discrepancia
+entre lo observado y lo esperado bajo $\pi$. 
+
+Para la muestra 1 con $(n_1,y_1)$, tenemos:
+
+\[
+    \frac{(y_1 - n_1 \pi_1)^2}{n_1 \pi_1} + \frac{((n_1 - y_1) - n_1(1 - \pi_1))^2}{n_1(1 - \pi_1)}
+\]
+
+Para la muestra 2 con $(n_2, y_2)$:
+
+\[
+    \frac{(y_2 - n_2 \pi_2)^2}{n_2 \pi_2} + \frac{((n_2 - y_2) - n_2(1 - \pi_2))^2}{n_2(1 - \pi_2)}
+\]
+
+Para la muestra 3 con $(n_3, y_3)$:
+
+\[
+    \frac{(y_3 - n_3 \pi_3)^2}{n_3 \pi_3} + \frac{((n_3 - y_3) - n_3(1 - \pi_3))^2}{n_3(1 - \pi_3)}
+\]
+
+Sin embargo, tenemos una restricción. Sabemos que:
+
+\[
+    \pi_1 + \pi_2 + \pi_3 = 1 \;\;\; => \;\;\; \pi_3 = 1 - \pi_1 - \pi_2
+\]
+
+Esto reduce el problema de tres parámetros a dos libres $(\pi_1, \pi_2)$. 
+
+En resumidas cuenta, lo que debemos resolver es:
+
+\[
+    \min_{\pi_1, \pi_2 \geq0, \pi_1 + \pi_2 \leq 1} Q(\pi_1, \pi_2)
+\]
+
+Donde: 
+
+\[
+\begin{split}
+Q(\pi_1, \pi_2) = & \frac{(y_1 - n_1 \pi_1)^2}{n_1 \pi_1} + \frac{((n_1 - y_1) - n_1(1 - \pi_1))^2}{n_1(1 - \pi_1)} \\
+& + \frac{(y_2 - n_2 \pi_2)^2}{n_2 \pi_2} + \frac{((n_2 - y_2) - n_2(1 - \pi_2))^2}{n_2(1 - \pi_2)} \\
+& + \frac{(y_3 - n_3(1 - \pi_1 - \pi_2))^2}{n_3(1 - \pi_1 - \pi_2)} + \frac{((n_3 - y_3) - n_3(\pi_1 + \pi_2))^2}{n_3(\pi_1 + \pi_2)}
+\end{split}
+\]
+
+Lo que haremos a continuación será aplicar mínima ji-cuadrada para ajustar una función de pérdida similar
+a la de un modelo de regresión multinomial, pero en lugar de maximizar la log-verosimilitud, estamos 
+minimizando una suma de discrepancias de $\chi^2$. Es decir, mientras con MLE se aproxima el máximo 
+ajuste estadístico, con mínima ji-cuadrada se aproxima al mínimo desajuste respecto a lo esperado. 
+
+\subsection{Resultados}
+
+\begin{table}[h!]
+    \centering
+    \caption{Resultados de la optimización numérica para las proporciones $\pi_i$ mediante el método de mínima ji-cuadrada, utilizando la función \texttt{nlminb} en R.}
+    \label{tab:opt_results}
+    \begin{tabular}{lc}
+        \toprule
+        \textbf{Componente} & \textbf{Valor} \\
+        \midrule
+        \multicolumn{2}{c}{\textit{Estimaciones de Parámetros}} \\
+        $\hat{\pi}_1$ & 0.2395 \\
+        $\hat{\pi}_2$ & 0.3629 \\
+        $\hat{\pi}_3$ (calculado) & 0.3976 \\
+        \midrule
+        \multicolumn{2}{c}{\textit{Detalles de la Optimización}} \\
+        Valor final del objetivo ($\chi^2$) & 0.5123 \\
+        Código de convergencia & 0 (\'Exito) \\
+        Mensaje de convergencia & Relative convergence (4) \\
+        Iteraciones & 13 \\
+        Evaluaciones de la función & 21 \\
+        Evaluaciones del gradiente & 38 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+En el cuadro \ref{tab:opt_results}, podemos encontrar los resultados de nuestro intento de optimización. 
+
+Las proporciones observadas por muestra son:
+
+\[
+    \frac{y_1}{n_1} = 0.22 \;\;\;\;\; \frac{y_2}{n_2} = 0.3467 \;\;\;\;\; \frac{y_3}{n_3} = 0.385
+\]
+
+Al sumarlas, tenemos un aproximado de $ \frac{y_1}{n_1} +  \frac{y_2}{n_2} +  \frac{y_3}{n_3} = 0.9517 < 1$. Es decir,
+la restricción impuesta de $\pi_1 + \pi_2 + \pi_3 = 1$ por el modelo multivariado produce \textit{shrinkage}, 
+lo cual incrementa ligeramente las estiamciones $\hat{\pi}_m$ respecto a las proporciones en crudo. Este
+fenómeno ocurre al minimizar el estadístico de Pearson agregado:
+
+\[
+    Q(\pi_1, \pi_2) = \sum_{m=1}^{3} \frac{(y_m - n_m \pi_m)^2}{n_m \pi_m (1 - \pi_m)}
+\]
+
+En esta expresión, cada término corresponde a una distribución binomial. La solución equivale a un problema
+de optimización con multiplicadores de Lagrange, donde cada $\pi_m$ se ajusta balanceando su
+residuo ponderado po rla varianza esperada bajo el modelo. 
+
+Recordemos que tenemos tres muestras binomiales, pero se estimaron dos parámetros libres, tal que tenemos
+un $p-value \approx 0.47$. Este resultado no sdice que los datos son compatibles con un único vector 
+$\pi$ común a las tres muestras. 
+
+Ahora, revisando los residuos de Pearson, para cada muestra $m$ tenemos:
+
+\[  
+    r_m = \frac{y_m - n_m \hat{\pi}_m}{\sqrt{n_m \hat{\pi}_m(1 - \hat{\pi}_m)}} \;\;\;\; r_m^2 \;\; \text{aporta a Q}
+\]
+
+\begin{align*}
+    \text{Muestra 1: } n_1\hat{\pi}_1 = 23.95, \; y_1=22 & \rightarrow r_1^2 \approx 0.210 \\
+    \text{Muestra 2: } n_2\hat{\pi}_2 = 54.43, \; y_2=52 & \rightarrow r_2^2 \approx 0.171 \\
+    \text{Muestra 3: } n_3\hat{\pi}_3 = 79.51, \; y_3=77 & \rightarrow r_3^2 \approx 0.137
+\end{align*}
+Suma $\approx 0.518$ (coincide con $Q \approx 0.512$ por redondeo).
+
+El estimador de mínima ji-cuadrada es asintóticamente equivalente al MLE bajo el modelo correcto.
+Aquí resulta muy cercano a resolver el problema de MLE con la restricción lineal 
+$\pi_1 + \pi_2 + \pi_3 = 1$. Por tanto, es razonable usar estas $\hat{\pi}$ como 
+estimaciones puntuales y construir IC's mediante la matriz de información observada 
+(Hessiano) o bootstrap paramétrico.
+
+\clearpage

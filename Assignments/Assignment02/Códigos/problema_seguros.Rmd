@@ -1,0 +1,311 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Problema | Seguros 
+
+```{r}
+# Paquetes
+library(dplyr)
+library(ggplot2)
+
+# 1) Crear dataset a partir de la tabla
+seguros <- data.frame(
+  CAR   = rep(1:4, each = 8),
+  EDAD  = rep(rep(1:4, each = 2), times = 4),
+  DIST  = rep(rep(c(0, 1), times = 4), times = 4),
+  y     = c(
+    65, 2, 65, 5, 52, 4, 310, 36,
+    98, 7, 159, 10, 175, 22, 877, 102,
+    41, 5, 117, 7, 137, 16, 477, 63,
+    11, 0, 35, 6, 39, 8, 167, 33
+  ),
+  n     = c(
+    317, 20, 476, 33, 486, 40, 3259, 316,
+    486, 31, 1004, 81, 1355, 122, 7660, 724,
+    223, 18, 539, 39, 697, 68, 3442, 344,
+    40, 3, 148, 16, 214, 25, 1019, 114
+  )
+)
+
+# 2) Calcular tasa de reclamos
+seguros <- seguros %>%
+  mutate(rate = y / n)
+
+# Ver primeras filas
+head(seguros)
+
+# 3) Graficar: tasa vs EDAD, coloreado por CAR y facetado por DIST
+ggplot(seguros, aes(x = factor(EDAD), y = rate, color = factor(CAR), group = CAR)) +
+  geom_point(size = 3) +
+  geom_line() +
+  facet_wrap(~DIST) +
+  labs(
+    title = "Tasa de reclamos por edad, tipo de carro y distrito",
+    x = "Edad del titular",
+    y = "Tasa de reclamos (y/n)",
+    color = "Tipo de carro"
+  ) +
+  theme_minimal()
+```
+
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(broom)
+library(binom)
+
+# --- Usa tu data.frame `seguros` tal como lo construimos antes ---
+seguros <- seguros %>% mutate(
+  CAR  = factor(CAR),
+  EDAD = factor(EDAD, ordered = TRUE),
+  DIST = factor(DIST)
+)
+
+# 1) Resumen por celda (ya lo tienes): tasa y CI binomial (Wilson)
+celda_ci <- seguros %>%
+  mutate(rate = y/n) %>%
+  rowwise() %>%
+  mutate(
+    ci_low  = binom.confint(y, n, method = "wilson")$lower,
+    ci_high = binom.confint(y, n, method = "wilson")$upper
+  ) %>%
+  ungroup()
+
+# 2) Efectos principales (promedios ponderados por n) + CI via binomial agregando y y n
+eff_car <- seguros %>%
+  group_by(CAR) %>%
+  summarise(y = sum(y), n = sum(n), .groups = "drop") %>%
+  mutate(rate = y/n) %>%
+  rowwise() %>%
+  mutate(
+    ci_low  = binom.confint(y, n, method = "wilson")$lower,
+    ci_high = binom.confint(y, n, method = "wilson")$upper
+  ) %>% ungroup()
+
+eff_edad <- seguros %>%
+  group_by(EDAD) %>%
+  summarise(y = sum(y), n = sum(n), .groups = "drop") %>%
+  mutate(rate = y/n) %>%
+  rowwise() %>%
+  mutate(
+    ci_low  = binom.confint(y, n, method = "wilson")$lower,
+    ci_high = binom.confint(y, n, method = "wilson")$upper
+  ) %>% ungroup()
+
+eff_dist <- seguros %>%
+  group_by(DIST) %>%
+  summarise(y = sum(y), n = sum(n), .groups = "drop") %>%
+  mutate(rate = y/n) %>%
+  rowwise() %>%
+  mutate(
+    ci_low  = binom.confint(y, n, method = "wilson")$lower,
+    ci_high = binom.confint(y, n, method = "wilson")$upper
+  ) %>% ungroup()
+
+# 3) Gráfico con CIs por celda (facetas por DIST)
+ggplot(celda_ci, aes(x = EDAD, y = rate, color = CAR, group = CAR)) +
+  geom_point(size = 2.8) +
+  geom_line(alpha = 0.7) +
+  geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.05, alpha = 0.5) +
+  facet_wrap(~DIST) +
+  labs(title = "Tasa de reclamos por edad, carro y distrito (con IC Wilson)",
+       x = "Edad", y = "Tasa y/n", color = "CAR") +
+  theme_minimal()
+
+# 4) Efectos principales (promedios ponderados por n) con CIs
+p_car <- ggplot(eff_car, aes(x = CAR, y = rate)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.1) +
+  labs(title = "Efecto principal de CAR (ponderado por n)", y = "Tasa y/n", x = "CAR") +
+  theme_minimal()
+
+p_edad <- ggplot(eff_edad, aes(x = EDAD, y = rate, group = 1)) +
+  geom_point(size = 3) + geom_line() +
+  geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.05) +
+  labs(title = "Efecto principal de EDAD (ponderado por n)", y = "Tasa y/n", x = "EDAD") +
+  theme_minimal()
+
+p_dist <- ggplot(eff_dist, aes(x = DIST, y = rate)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.05) +
+  labs(title = "Efecto principal de DIST (ponderado por n)", y = "Tasa y/n", x = "DIST") +
+  theme_minimal()
+
+p_car; p_edad; p_dist
+
+```
+
+### Ajustando un modelo Poisson
+
+```{r}
+# ===========================================
+# Ejercicio 4(b) - Poisson con offset log(n)
+# ===========================================
+library(dplyr)
+library(broom)
+library(MASS)        # glm.nb
+library(AER)         # dispersiontest (opcional)
+library(ggplot2)
+
+# --- 0) Datos (usa el 'seguros' que ya construiste) ---
+# Aseguramos codificación como factores
+dat <- seguros %>%
+  mutate(
+    CAR  = factor(CAR),
+    EDAD = factor(EDAD, ordered = FALSE),
+    DIST = factor(DIST),
+    off  = log(n)
+  )
+
+# --- 1) Modelos anidados ---
+m0 <- glm(y ~ 1 + offset(off), data = dat, family = poisson)                # sólo offset
+m1 <- glm(y ~ CAR + EDAD + DIST + offset(off), data = dat, family = poisson)  # efectos principales
+m2 <- glm(y ~ (CAR + EDAD + DIST)^2 + offset(off), data = dat, family = poisson)  # interacciones 2 vías
+
+# Comparación (LRT válidos entre Poisson)
+anova(m0, m1, test = "Chisq")
+anova(m1, m2, test = "Chisq")
+
+AIC(m0, m1, m2)
+
+# --- 2) Sobredispersión ---
+disp_m1 <- sum(residuals(m1, type="pearson")^2) / m1$df.residual
+disp_m2 <- sum(residuals(m2, type="pearson")^2) / m2$df.residual
+disp_m1; disp_m2
+# Alternativa formal:
+# AER::dispersiontest(m1); AER::dispersiontest(m2)
+
+# --- 3) Ajustes robustos si hay sobredispersión ---
+# (a) quasi-Poisson (no AIC, pero IC y p-val ajustados)
+m1_qp <- glm(y ~ CAR + EDAD + DIST + offset(off), data = dat, family = quasipoisson)
+m2_qp <- glm(y ~ (CAR + EDAD + DIST)^2 + offset(off), data = dat, family = quasipoisson)
+
+# (b) Negativa Binomial (comparable por AIC)
+m1_nb <- glm.nb(y ~ CAR + EDAD + DIST + offset(off), data = dat)
+m2_nb <- glm.nb(y ~ (CAR + EDAD + DIST)^2 + offset(off), data = dat)
+AIC(m1_nb, m2_nb)
+
+# --- 4) Tabla de IRR (Incidence Rate Ratios) ---
+irr_table <- function(fit){
+  est <- coef(fit)
+  se  <- sqrt(diag(vcov(fit)))
+  tibble(
+    term = names(est),
+    IRR  = exp(est),
+    `2.5%` = exp(est - 1.96*se),
+    `97.5%` = exp(est + 1.96*se),
+    pval = summary(fit)$coef[,4]
+  )
+}
+
+irr_m1 <- irr_table(m1)
+irr_m2 <- irr_table(m2)
+
+# --- 5) Predicciones por celda y tasas esperadas ---
+pred_cells <- dat %>%
+  mutate(
+    mu_hat_m1 = predict(m1, type = "response"),
+    mu_hat_m2 = predict(m2, type = "response"),
+    rate_hat_m1 = mu_hat_m1 / n,
+    rate_hat_m2 = mu_hat_m2 / n
+  )
+
+# --- 6) Visual: observado vs ajustado (m1) ---
+ggplot(pred_cells, aes(x = rate, y = rate_hat_m1, color = CAR, shape = DIST)) +
+  geom_abline(slope = 1, intercept = 0, linetype = 2) +
+  geom_point(size = 3) +
+  facet_wrap(~ EDAD) +
+  labs(title = "Tasa observada vs ajustada (m1: efectos principales)",
+       x = "Tasa observada y/n", y = "Tasa ajustada") +
+  theme_minimal()
+
+# --- 7) Diagnóstico simple ---
+par(mfrow=c(1,2))
+plot(m1, which = 1)  # residuos vs ajustados
+plot(m1, which = 2)  # Q-Q sobre desvíos
+par(mfrow=c(1,1))
+```
+
+```{r}
+library(broom)
+
+irr_table <- function(fit){
+  est <- coef(fit); se <- sqrt(diag(vcov(fit)))
+  tibble::tibble(
+    term = names(est),
+    IRR  = exp(est),
+    `IC95%_low`  = exp(est - 1.96*se),
+    `IC95%_high` = exp(est + 1.96*se),
+    p_value = summary(fit)$coef[,4]
+  )
+}
+
+irr_m1 <- irr_table(m1)
+# ordena por magnitud de efecto (absoluta)
+dplyr::arrange(irr_m1, dplyr::desc(abs(log(IRR))))
+
+```
+
+
+```{r}
+# Agregado por DIST
+eff_dist <- seguros |>
+  dplyr::group_by(DIST) |>
+  dplyr::summarise(y = sum(y), n = sum(n), .groups="drop") |>
+  dplyr::mutate(rate = y/n)
+
+lambda0 <- eff_dist$rate[eff_dist$DIST==0]
+lambda1 <- eff_dist$rate[eff_dist$DIST==1]
+n0 <- eff_dist$n[eff_dist$DIST==0]
+n1 <- eff_dist$n[eff_dist$DIST==1]
+
+Delta <- lambda1 - lambda0
+SE    <- sqrt(lambda1/n1 + lambda0/n0)
+z     <- qnorm(0.95)  # 1.644854
+CI90  <- c(Delta - z*SE, Delta + z*SE)
+
+Delta; SE; CI90
+# Traducción: CI90*100 = diferencia en "reclamos por 100 pólizas"
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dsgsdagsdf

@@ -1,0 +1,69 @@
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%% Enunciado %%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{myblock}
+\phantomsection\addcontentsline{toc}{section}{Ejercicio \#9 | Modelo log-lineal para el dataset Titanic}
+\section*{Ejercicio \#9 | Modelo log-lineal para el dataset Titanic}
+
+Este problema analiza los datos históricos del hundimiento del Titanic en 1912. El objetivo es utilizar un \textbf{modelo log-lineal} para investigar las asociaciones e interacciones entre cuatro variables categóricas que describen a los pasajeros.
+
+Los datos, disponibles en la librería \texttt{titanic} de R, se presentan en una tabla de contingencia de cuatro dimensiones con las siguientes variables:
+\begin{itemize}
+    \item \textbf{Class}: Clase del pasajero (1, 2, 3, Tripulación).
+    \item \textbf{Sex}: Sexo (Male, Female).
+    \item \textbf{Age}: Grupo de edad (Child, Adult).
+    \item \textbf{Survived}: Estado de supervivencia (No, Yes).
+\end{itemize}
+
+Se debe ajustar un modelo log-lineal para evaluar la significancia de los siguientes efectos y así comprender la estructura de dependencias en los datos:
+\begin{enumerate}
+    \item \textbf{Efectos Principales}: Determinar si las frecuencias de pasajeros son uniformes a través de las categorías de \texttt{Class}, \texttt{Sex}, \texttt{Age} y \texttt{Survived}.
+    \item \textbf{Interacciones de Dos Vías}: Evaluar la independencia entre cada par de variables (ej. \texttt{Sex} $\times$ \texttt{Survived}, \texttt{Class} $\times$ \texttt{Age}).
+    \item \textbf{Interacciones de Orden Superior}: Investigar las dependencias más complejas, incluyendo todas las interacciones de tres vías y la interacción de cuatro vías.
+\end{enumerate}
+
+\end{myblock}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Para lograr investigar el comportamiento de independencia entre variables categóricas de estudio, implementamos
+un modelo log-lineal jerárquico. Este enfoque permite evaluar de manera sistemática la contribución de interacciones
+de creciente complejidad para explicar las frecuencias observadas en la tabla de contingencia. Se compararon cuatro
+modelos anidados, cada uno representando una hipótesis específica sobre la relación entre las variables.
+
+La selección del modelo óptimo se basó en el estadístico de razón de verosimilitud que compara el ajuste
+de cad amoedlo propuesto con el ajuste del modelo saturado. Los modelos evaluados fueron:
+
+\begin{itemize}
+    \item \textbf{Modelo de Independencia Total (m0):} Este modelo base postula que no existe asociaci\'{o}n alguna entre ninguna de las variables. Matem\'{a}ticamente, se expresa como:
+    $$ \log E[n_{ijkl}] = \mu + \alpha_i + \beta_j + \gamma_k + \delta_l $$
+    La evaluaci\'{o}n de este modelo arroj\'{o} un ajuste extremadamente deficiente ($G^2 = 1243.66$ con 25 grados de libertad, $p \approx 0$). Este resultado permite rechazar de forma contundente la hip\'{o}tesis de que las variables son mutuamente independientes.
+
+    \item \textbf{Modelo de Interacciones de Dos Vías (m2):} El segundo modelo incorpora todas las posibles asociaciones por pares entre las variables. Aunque represent\'{o} una mejora sustancial respecto al modelo de independencia, su ajuste segu\'{\i}a siendo estad\'{\i}sticamente inadecuado ($G^2 = 116.59$ con 13 grados de libertad, $p \approx 0$). Esto indica que las meras asociaciones entre pares de variables no son suficientes para capturar la complejidad de la estructura subyacente en los datos.
+
+    \item \textbf{Modelo de Interacciones de Tres Vías (m3):} Este modelo representa el punto de inflexi\'{o}n en nuestro an\'{a}lisis. Al incluir todos los t\'{e}rminos de interacci\'{o}n de tres v\'{\i}as (y, por el principio de jerarqu\'{\i}a, los t\'{e}rminos de orden inferior), el modelo present\'{o} un ajuste excepcional a los datos observados ($G^2 = 2.73 \times 10^{-4}$ con 3 grados de libertad, $p \approx 0.999999$). Un valor de devianza pr\'{a}cticamente nulo y un p-valor cercano a 1 constituyen una fuerte evidencia de que este modelo explica casi la totalidad de la estructura de dependencia presente.
+
+    \item \textbf{Modelo Saturado (m4):} Este modelo, que incluye la interacci\'{o}n de cuatro v\'{\i}as, reproduce perfectamente los datos por definici\'{o}n ($G^2 = 0$ con 0 grados de libertad). No aporta informaci\'{o}n explicativa adicional, pero sirve como referencia para confirmar que el modelo m3 ya ha capturado toda la estructura de dependencia relevante.
+\end{itemize}
+
+De ese modo, la evidencia estadística nos está diciendo que describir adecuadamente las relaciones enter variables
+es indispensable incluir los términos de interacción de tres vías. El modelo $m3$ es la más precisa 
+con la estructura de los datos. A su vez, la necesiadd de un término de interacción de tres vías implica
+que la relación entre dos variables cualesquiera no es constante, sin oque stá moderada o condicionada 
+por el valor ed una tercera variable. 
+
+El efecto del Sexo sobre la Supervivencia no es el mismo en todas las Clases o para todos los grupos de Edad.
+De manera an\'{a}loga, el impacto de la Edad en la probabilidad de Supervivencia se ve modificado por la Clase del individuo y su Sexo.
+En esencia, la narrativa popular de ``mujeres y ni\~{n}os primero'' no fue un protocolo aplicado de manera uniforme. Su implementaci\'{o}n y, por tanto, la probabilidad de supervivencia, dependi\'{o} de manera crucial de la clase social a la que pertenec\'{i}an los individuos, revelando una interacci\'{o}n compleja y de orden superior.
+
+Durante el an\'{a}lisis, se observ\'{o} que el estad\'{\i}stico chi-cuadrado de Pearson arrojaba un valor no definido (\texttt{NaN}). Esto se debe a la presencia de ceros estructurales en la tabla de contingencia (por ejemplo, la combinaci\'{o}n ``Tripulaci\'{o}n-Ni\~{n}o'' es l\'{o}gicamente imposible y su frecuencia observada es cero). En ciertos modelos, esto induce frecuencias esperadas ($E$) nulas para dichas celdas. Dado que el c\'{a}lculo del estad\'{\i}stico de Pearson implica una divisi\'{o}n por $E$ ($\sum \frac{(O-E)^2}{E}$), la presencia de un cero en el denominador provoca una indeterminaci\'{o}n matem\'{a}tica.
+
+Por esta raz\'{o}n, el estad\'{\i}stico de raz\'{o}n de verosimilitud ($G^2$) es el m\'{e}todo preferido y m\'{a}s robusto para el an\'{a}lisis de tablas de contingencia que contienen ceros estructurales, ya que su c\'{a}lculo no presenta esta limitaci\'{o}n.
+
+\clearpage

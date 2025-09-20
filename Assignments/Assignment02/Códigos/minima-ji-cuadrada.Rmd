@@ -1,0 +1,200 @@
+---
+title: "Mínima Ji-Cuadrada"
+output: html_notebook
+---
+
+Queremos estimar las proporciones de una multinomial de tres categorías:
+
+\[
+    \pi = (\pi_1, \pi_2, \pi_3) \;\;\; \pi_j \leq 0 \;\;\; \pi_1 + \pi_2 + \pi_3 = 1
+\]
+
+Normlaemnte, usaríamos máxima verosimilitud (MLE). pero se nos propuso una técnica diferente: utilizar
+mínima ji-cuadráda. Esta idea se basa en ajustar las probabilidades de maenra que se minimice el estadístico
+de Pearson:
+
+\[
+    \chi^2(\pi) = \sum_{j=1}^{K} \frac{(y_j  n \pi_j (\theta))^2}{n \pi_j (\theta)}
+\]
+
+En este problema en particular, no tenemos una muestra única multinomial, sino tres estudios independientes
+con tamañoa $n_1, n_2, n_3$, y cada uno reporta únicamente la frecuencia de una categoría:
+
+\begin{itemize}
+    \item En el estudio número 1 se registró el número de A'S.
+    \item En el estudio número 2 el número de B's.
+    \item En el estudio número 3 el número de C's.
+\end{itemize}
+
+De ese modo, cada muestra aporta información parcial sobre las $\pi_1, \pi_2, \pi_3$. 
+
+Ahora bien, el criterio de mínima ji-cuadrada se construye sumando, para cada estudio, la discrepancia
+entre lo observado y lo esperado bajo $\pi$. 
+
+Para la muestra 1 con $(n_1,y_1)$, tenemos:
+
+\[
+    \frac{(y_1 - n_1 \pi_1)^2}{n_1 \pi_1} + \frac{((n_1 - y_1) - n_1(1 - \pi_1))^2}{n_1(1 - \pi_1)}
+\]
+
+Para la muestra 2 con $(n_2, y_2)$:
+
+\[
+    \frac{(y_2 - n_2 \pi_2)^2}{n_2 \pi_2} + \frac{((n_2 - y_2) - n_2(1 - \pi_2))^2}{n_2(1 - \pi_2)}
+\]
+
+Para la muestra 3 con $(n_3, y_3)$:
+
+\[
+    \frac{(y_3 - n_3 \pi_3)^2}{n_3 \pi_3} + \frac{((n_3 - y_3) - n_3(1 - \pi_3))^2}{n_3(1 - \pi_3)}
+\]
+
+Sin embargo, tenemos una restricción. Sabemos que:
+
+\[
+    \pi_1 + \pi_2 + \pi_3 = 1 \;\;\; => \;\;\; \pi_3 = 1 - \pi_1 - \pi_2
+\]
+
+Esto reduce el problema de tres parámetros a dos libres $(\pi_1, \pi_2)$. 
+
+En resumidas cuenta, lo que debemos resolver es:
+
+\[
+    \min_{\pi_1, \pi_2 \geq0, \pi_1 + \pi_2 \leq 1} Q(\pi_1, \pi_2)
+\]
+
+Donde: 
+
+\[
+\begin{split}
+Q(\pi_1, \pi_2) = & \frac{(y_1 - n_1 \pi_1)^2}{n_1 \pi_1} + \frac{((n_1 - y_1) - n_1(1 - \pi_1))^2}{n_1(1 - \pi_1)} \\
+& + \frac{(y_2 - n_2 \pi_2)^2}{n_2 \pi_2} + \frac{((n_2 - y_2) - n_2(1 - \pi_2))^2}{n_2(1 - \pi_2)} \\
+& + \frac{(y_3 - n_3(1 - \pi_1 - \pi_2))^2}{n_3(1 - \pi_1 - \pi_2)} + \frac{((n_3 - y_3) - n_3(\pi_1 + \pi_2))^2}{n_3(\pi_1 + \pi_2)}
+\end{split}
+\]
+
+Lo que haremos a continuación será aplicar mínima ji-cuadrada para ajustar una función de pérdida similar
+a la de un modelo de regresión multinomial, pero en lugar de maximizar la log-verosimilitud, estamos 
+minimizando una suma de discrepancias de $\chi^2$. Es decir, mientras con MLE se aproxima el máximo 
+ajuste estadístico, con mínima ji-cuadrada se aproxima al mínimo desajuste respecto a lo esperado.
+
+
+```{r}
+# Datos del problema
+n1 <- 100; y1 <- 22
+n2 <- 150; y2 <- 52
+n3 <- 200; y3 <- 77
+
+chi_sq <- function(par) {
+  pi1 <- par[1]
+  pi2 <- par[2]
+  pi3 <- 1 - pi1 - pi2
+  
+  # Penalización si las probabilidades no son válidas
+  if (pi1 <= 0 || pi2 <= 0 || pi3 <= 0) {
+    return(1e6)
+  }
+  
+  # Aporte muestra 1 (categoría A)
+  term1 <- (y1 - n1 * pi1)^2 / (n1 * pi1) +
+    ((n1 - y1) - n1 * (1 - pi1))^2 / (n1 * (1 - pi1))
+  
+  # Aporte muestra 2 (categoría B)
+  term2 <- (y2 - n2 * pi2)^2 / (n2 * pi2) +
+    ((n2 - y2) - n2 * (1 - pi2))^2 / (n2 * (1 - pi2))
+  
+  # Aporte muestra 3 (categoría C)
+  term3 <- (y3 - n3 * pi3)^2 / (n3 * pi3) +
+    ((n3 - y3) - n3 * (1 - pi3))^2 / (n3 * (1 - pi3))
+  
+  return(term1 + term2 + term3)
+}
+
+# Valores iniciales
+start <- c(pi1 = y1 / n1, pi2 = y2 / n2)
+
+# Optimización
+fit <- nlminb(start, chi_sq,
+              lower = c(1e-6, 1e-6),     # cotas inferiores
+              upper = c(0.999, 0.999))   # cotas superiores
+
+fit
+
+
+pi1_hat <- fit$par[1]
+pi2_hat <- fit$par[2]
+pi3_hat <- 1 - pi1_hat - pi2_hat
+
+c(pi1 = pi1_hat, pi2 = pi2_hat, pi3 = pi3_hat)
+```
+
+```{r}
+# Estimaciones
+pi1 <- 0.2395447; pi2 <- 0.3628983; pi3 <- 1 - pi1 - pi2
+n1 <- 100; y1 <- 22
+n2 <- 150; y2 <- 52
+n3 <- 200; y3 <- 77
+
+# Contribuciones de Pearson por muestra (forma compacta para binomial)
+chi1 <- (y1 - n1*pi1)^2 / (n1*pi1*(1 - pi1))
+chi2 <- (y2 - n2*pi2)^2 / (n2*pi2*(1 - pi2))
+chi3 <- (y3 - n3*pi3)^2 / (n3*pi3*(1 - pi3))
+Qmin <- chi1 + chi2 + chi3
+
+# p-valor con df = 1
+pval <- 1 - pchisq(Qmin, df = 1)
+
+# Resumen legible
+cat(sprintf("pi_hat = (%.6f, %.6f, %.6f)\n", pi1, pi2, pi3))
+cat(sprintf("Q_min  = %.6f,  df = 1,  p-value = %.3f\n", Qmin, pval))
+
+# Esperados y residuos por muestra
+exp1 <- n1*pi1; exp2 <- n2*pi2; exp3 <- n3*pi3
+res1 <- (y1 - exp1) / sqrt(n1*pi1*(1 - pi1))
+res2 <- (y2 - exp2) / sqrt(n2*pi2*(1 - pi2))
+res3 <- (y3 - exp3) / sqrt(n3*pi3*(1 - pi3))
+
+print(data.frame(
+  sample = c("A","B","C"),
+  n = c(n1,n2,n3),
+  y = c(y1,y2,y3),
+  expected = c(exp1,exp2,exp3),
+  pearson_residual = c(res1,res2,res3),
+  contrib_chi2 = c(chi1,chi2,chi3)
+), row.names = FALSE)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

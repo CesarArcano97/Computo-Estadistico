@@ -1,0 +1,64 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Este problema analiza los datos históricos del hundimiento del Titanic en 1912. El objetivo es utilizar un \textbf{modelo log-lineal} para investigar las asociaciones e interacciones entre cuatro variables categóricas que describen a los pasajeros.
+
+Los datos, disponibles en la librería \texttt{titanic} de R, se presentan en una tabla de contingencia de cuatro dimensiones con las siguientes variables:
+\begin{itemize}
+    \item \textbf{Class}: Clase del pasajero (1, 2, 3, Tripulación).
+    \item \textbf{Sex}: Sexo (Male, Female).
+    \item \textbf{Age}: Grupo de edad (Child, Adult).
+    \item \textbf{Survived}: Estado de supervivencia (No, Yes).
+\end{itemize}
+
+Se debe ajustar un modelo log-lineal para evaluar la significancia de los siguientes efectos y así comprender la estructura de dependencias en los datos:
+\begin{enumerate}
+    \item \textbf{Efectos Principales}: Determinar si las frecuencias de pasajeros son uniformes a través de las categorías de \texttt{Class}, \texttt{Sex}, \texttt{Age} y \texttt{Survived}.
+    \item \textbf{Interacciones de Dos Vías}: Evaluar la independencia entre cada par de variables (ej. \texttt{Sex} $\times$ \texttt{Survived}, \texttt{Class} $\times$ \texttt{Age}).
+    \item \textbf{Interacciones de Orden Superior}: Investigar las dependencias más complejas, incluyendo todas las interacciones de tres vías y la interacción de cuatro vías.
+\end{enumerate}
+
+```{r}
+# ===============================
+# 1) Cargar datos
+# ===============================
+library(MASS)      # para loglm
+data("Titanic")    # tabla 4D ya incluida en R
+
+# Revisar la estructura
+Titanic
+
+# ===============================
+# 2) Modelo de independencia total
+# ===============================
+m0 <- loglm(~ Class + Sex + Age + Survived, data = Titanic)
+summary(m0)
+
+# ===============================
+# 3) Modelo con interacciones de 2 vías
+# ===============================
+m2 <- loglm(~ (Class + Sex + Age + Survived)^2, data = Titanic)
+summary(m2)
+
+# ===============================
+# 4) Modelo con interacciones de 3 vías
+# ===============================
+m3 <- loglm(~ (Class + Sex + Age + Survived)^3, data = Titanic)
+summary(m3)
+
+# ===============================
+# 5) Modelo saturado (perfecto ajuste)
+# ===============================
+msat <- loglm(~ (Class + Sex + Age + Survived)^4, data = Titanic)
+summary(msat)
+
+# ===============================
+# 6) Comparar modelos
+# ===============================
+anova(m0, m2, m3, msat)
+
+```
+
+

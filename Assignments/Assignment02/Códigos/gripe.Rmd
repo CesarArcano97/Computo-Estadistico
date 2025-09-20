@@ -1,0 +1,79 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+# ============================================================
+# Problema 10: Vitamina C vs Placebo (gripe) - versión corregida
+# ============================================================
+
+# ---- 1) Datos ----
+tab <- matrix(c(31,109,   # Placebo: gripe, no gripe
+                17,122),  # VitC:    gripe, no gripe
+              nrow = 2, byrow = TRUE,
+              dimnames = list(Tratamiento = c("Placebo","VitC"),
+                              Estado = c("Gripe","NoGripe")))
+tab
+addmargins(tab)
+
+# ---- 2) Modelo logístico ----
+fit <- glm(tab ~ c(0,1), family = binomial)
+summary(fit)
+
+# Odds ratio e IC95%
+beta  <- coef(fit)[2]
+se    <- sqrt(vcov(fit)[2,2])
+OR    <- exp(beta)
+IC95  <- exp(beta + c(-1,1)*1.96*se)
+
+# Riesgos
+n_placebo <- sum(tab["Placebo", ])
+n_vitc    <- sum(tab["VitC", ])
+risk_P    <- tab["Placebo","Gripe"]/n_placebo
+risk_V    <- tab["VitC","Gripe"]/n_vitc
+risk_diff <- risk_V - risk_P
+RR        <- risk_V / risk_P
+
+# ---- 3) Pruebas ----
+# Chi-cuadrado de Pearson
+chisq.test(tab, correct = FALSE)
+
+# Fisher: corregimos la dirección
+# Hipótesis: VitC reduce gripe -> OR (VitC vs Placebo) < 1
+fisher.test(tab, alternative = "greater")  # ahora correcto
+
+# ---- 4) Resultados ----
+cat("\n================= RESULTADOS =================\n")
+cat(sprintf("Riesgo Gripe (Placebo): %.4f (%d/%d)\n", risk_P, tab["Placebo","Gripe"], n_placebo))
+cat(sprintf("Riesgo Gripe (VitC):    %.4f (%d/%d)\n", risk_V, tab["VitC","Gripe"], n_vitc))
+cat(sprintf("Diferencia de riesgos (VitC - Placebo): %.4f\n", risk_diff))
+cat(sprintf("Riesgo Relativo (RR): %.3f\n", RR))
+cat(sprintf("Odds Ratio (VitC vs Placebo): %.3f\n", OR))
+cat(sprintf("IC95%% OR (Wald): [%.3f, %.3f]\n", IC95[1], IC95[2]))
+cat("Fisher (unilateral, VitC reduce gripe):\n")
+print(fisher.test(tab, alternative = "greater"))
+cat("==============================================\n")
+
+
+# ---- 6) Gráfico de proporciones con IC95% (Wilson) ----
+prop_ci_wilson <- function(x, n, conf=0.95){
+  # IC de Wilson sin corrección
+  z <- qnorm(1 - (1-conf)/2)
+  phat <- x/n
+  den <- 1 + z^2/n
+  center <- (phat + z^2/(2*n)) / den
+  half   <- z*sqrt(phat*(1-phat)/n + z^2/(4*n^2)) / den
+  c(lower = center - half, upper = center + half)
+}
+ci_P <- prop_ci_wilson(tab["Placebo","Gripe"], n_placebo)
+ci_V <- prop_ci_wilson(tab["VitC","Gripe"], n_vitc)
+
+props <- c(Placebo = risk_P, VitC = risk_V)
+bp <- barplot(props, ylim=c(0, max(props, ci_P, ci_V)*1.15),
+              ylab="Proporción con gripe", main="Gripe por tratamiento (con IC95% Wilson)")
+arrows(x0=bp, y0=c(ci_P["lower"], ci_V["lower"]),
+       x1=bp, y1=c(ci_P["upper"], ci_V["upper"]),
+       angle=90, code=3, length=0.05)
+text(bp, props, labels=sprintf("%.1f%%", 100*props), pos=3)
+```
